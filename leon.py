@@ -170,6 +170,5 @@ async def on_message(message):
     else:
         await leon(author)
 
-print(discord.__version__)
 client.loop.create_task(clean_roles())
 client.run("MzkzMzcxMTk2NDYyMjAyODgw.DR0zLg.65LugZBU0VEmDc0AUF5317UTHl8")
