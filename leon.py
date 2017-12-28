@@ -7,6 +7,7 @@ Created on Thu Dec 21 12:59:05 2017
 import discord
 import random
 import asyncio
+import os
 
 client = discord.Client()
 
@@ -171,4 +172,5 @@ async def on_message(message):
         await leon(author)
 
 client.loop.create_task(clean_roles())
-client.run("MzkzMzcxMTk2NDYyMjAyODgw.DR0zLg.65LugZBU0VEmDc0AUF5317UTHl8")
+token = os.environ.get('TOKEN')
+client.run(token)
