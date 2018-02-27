@@ -122,7 +122,7 @@ class LeonCog:
         elif spec and has_role:
             await has_role.edit(color=random_spec(spec))
             
-    @commands.group()
+    @commands.group(invoke_without_command=True)
     @commands.check(check_if_not_following)
     async def rainbow(self, ctx, spec=None):
         if ctx.invoked_subcommand is None:
