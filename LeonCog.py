@@ -47,7 +47,7 @@ def random_spec(spec):
         x = lambda a, b: random.randint(min(a, b), max(a, b))
         r,g,b = x(r1, r2), x(g1, g2), x(b1, b2)
         return discord.Colour.from_rgb(r,g,b)
-    elif re.search("^{0}\s*,\s*{0}\s*,\s*{0}-{0}\s*,\s*{0}\s*,\s*{0}$".format("0*((1(\.0?)?)|(0(\.[0-9]*)?)|(\.[0-9]+))"), spec):
+    elif re.search("^{0}\s*,\s*{0}\s*,\s*{0}-{0}\s*,\s*{0}\s*,\s*{0}$".format("((1(\.0?)?)|(0(\.[0-9]*)?))"), spec):
         color1, color2 = spec.split("-")
         h1,l1,s1 = map(float, re.split("\s*,\s*", color1))
         h2,l2,s2 = map(float, re.split("\s*,\s*", color2))
@@ -62,8 +62,6 @@ def check_if_not_following(ctx):
     author = ctx.author
     leon_role = discord.utils.find(lambda role: role.name.startswith("leon "), author.roles)
     if leon_role is None or author.name in leon_role.name:
-        return True
-    elif ctx.invoked_with == "follow":
         return True
     return False
 
@@ -193,7 +191,6 @@ class LeonCog:
             await ctx.send("{} doesn't have a valid role!" .format(other_member))
             
     @commands.command()
-    @commands.check(check_if_not_following)
     async def follow(self, ctx, other_member):
         author = ctx.author
         guild = ctx.guild
@@ -204,6 +201,7 @@ class LeonCog:
         members_role = discord.utils.get(member_found.roles, name = "leon " + other_member)
         print(members_role)
         if members_role:
+            print(author)
             await author.add_roles(members_role)
             role_name = "leon " + author.name
             has_role = discord.utils.get(author.roles, name=role_name)
