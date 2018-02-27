@@ -1,14 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Feb 25 13:44:06 2018
-
-@author: Lenovo
-"""
 from discord.ext import commands
 import asyncio
 import json
-
-#bot = commands.Bot(command_prefix ='!leon ')
 
 class Leon(commands.Bot):
     def __init__(self, *args, **kwargs):
