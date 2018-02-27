@@ -250,10 +250,10 @@ class LeonCog:
         inv = ctx.invoked_with
         if inv == "rand" or inv == "rainbow" or inv == "rainbow off" or \
         inv == "setcolor" or inv == "camouflage":
-            if isinstance(type(error), type(commands.errors.CheckFailure)):
+            if isinstance(error, type(commands.errors.CheckFailure)):
                 await ctx.send("Error! You're following someone!")
         elif inv == "unfollow":
-            if isinstance(type(error), type(commands.errors.CheckFailure)):
+            if isinstance(error, type(commands.errors.CheckFailure)):
                 await ctx.send("Error! You aren't following anyone yet!")
         else:
             print(error)
