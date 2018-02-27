@@ -19,7 +19,7 @@ class Leon(commands.Bot):
             print(e)
             self.data = {}
             for guild in self.guilds:
-                self.data[guild.id] = {}
+                self.data[str(guild.id)] = {}
             print("Data for {} succesfully created" .format([guild.name for guild in self.guilds]))
             return self.data
     
