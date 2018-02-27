@@ -19,7 +19,6 @@ def random_color():
     return discord.Colour.from_rgb(x(), x(), x())
 
 def random_spec(spec):
-	reg_0to1f = r"((1(\.0?)?)|(0(\.[0-9]*)?))"
     hue = lambda start, end: random.uniform(start, end)
     x = random.random
     if spec == "red-yellow":
@@ -35,25 +34,25 @@ def random_spec(spec):
     elif spec == "magenta-red":
         h = hue(5/6, 1)
     elif re.search("^#[a-fA-F0-9]{6}-#[a-fA-F0-9]{6}$", s):
-		convert = lambda x: (int(x[0:2], 16), int(x[2:4], 16), int(x[4:6], 16))
-		r1,g1,b1 = x(spec[1:7])
-		r2,g2,b2 = x(spec[9:15])
-		x = lambda a, b: random.randint(min(a, b), max(a, b))
-		r,g,b = x(r1, r2), x(g1, g2), x(b1, b2)
-		return discord.Colour.from_rgb(r,g,b)
-	elif re.search("^{0}\s*,\s*{0}\s*,\s*{0}$".format(reg_0to1f), s):
-		h,l,s = re.split("\s*,\s*", s)
-		return hls_to_Colour(h,l,s)
-	else:
-		return
-	r,g,b = colorsys.hls_to_rgb(hls)
+        convert = lambda x: (int(x[0:2], 16), int(x[2:4], 16), int(x[4:6], 16))
+        r1,g1,b1 = x(spec[1:7])
+        r2,g2,b2 = x(spec[9:15])
+        x = lambda a, b: random.randint(min(a, b), max(a, b))
+        r,g,b = x(r1, r2), x(g1, g2), x(b1, b2)
+        return discord.Colour.from_rgb(r,g,b)
+    elif re.search("^{0}\s*,\s*{0}\s*,\s*{0}$".format("((1(\.0?)?)|(0(\.[0-9]*)?))"), s):
+        h,l,s = re.split("\s*,\s*", s)
+        return hls_to_Colour(h,l,s)
+    else:
+        return
+    r,g,b = colorsys.hls_to_rgb(hls)
     return hls_to_Colour(h, x(), x())
 
 def hls_to_Colour(h, l, s):
-	r,g,b = colorsys.hls_to_rgb(hls)
-	convert = lambda x: int(x*255)
-	r,g,b = convert(r), convert(g), convert(b)
-	return discord.Colour.from_rgb(r,g,b)
+    r,g,b = colorsys.hls_to_rgb(hls)
+    convert = lambda x: int(x*255)
+    r,g,b = convert(r), convert(g), convert(b)
+    return discord.Colour.from_rgb(r,g,b)
 
 def check_if_not_following(ctx):
     author = ctx.author
