@@ -47,7 +47,7 @@ def random_spec(spec):
         x = lambda a, b: random.randint(min(a, b), max(a, b))
         r,g,b = x(r1, r2), x(g1, g2), x(b1, b2)
         return discord.Colour.from_rgb(r,g,b)
-    elif re.search("^{0}\s*,\s*{0}\s*,\s*{0}-{0}\s*,\s*{0}\s*,\s*{0}$".format("((1(\.0?)?)|(0(\.[0-9]*)?))"), spec):
+    elif re.search("^{0}\s*,\s*{0}\s*,\s*{0}-{0}\s*,\s*{0}\s*,\s*{0}$".format("0*((1(\.0?)?)|(0(\.[0-9]*)?)|(\.[0-9]+))"), spec):
         color1, color2 = spec.split("-")
         h1,l1,s1 = map(float, re.split("\s*,\s*", color1))
         h2,l2,s2 = map(float, re.split("\s*,\s*", color2))
