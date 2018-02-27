@@ -40,14 +40,14 @@ def random_spec(spec):
         h = hue(2/3, 5/6)
     elif spec == "magenta-red":
         h = hue(5/6, 1)
-    elif re.search("^#[a-fA-F0-9]{6}-#[a-fA-F0-9]{6}$", spec):
+    elif re.search("^\s*#[a-fA-F0-9]{6}\s*-\s*#[a-fA-F0-9]{6}\s*$", spec):
         convert = lambda x: (int(x[0:2], 16), int(x[2:4], 16), int(x[4:6], 16))
         r1,g1,b1 = convert(spec[1:7])
         r2,g2,b2 = convert(spec[9:15])
         x = lambda a, b: random.randint(min(a, b), max(a, b))
         r,g,b = x(r1, r2), x(g1, g2), x(b1, b2)
         return discord.Colour.from_rgb(r,g,b)
-    elif re.search("^{0}\s*,\s*{0}\s*,\s*{0}-{0}\s*,\s*{0}\s*,\s*{0}$".format("((1(\.0?)?)|(0(\.[0-9]*)?))"), spec):
+    elif re.search("^\s*{0}\s*,\s*{0}\s*,\s*{0}\s*-\s*{0}\s*,\s*{0}\s*,\s*{0}\s*$".format("0*((1(\.0?)?)|(0(\.[0-9]*)?)|(\.[0-9]+))"), spec):
         color1, color2 = spec.split("-")
         h1,l1,s1 = map(float, re.split("\s*,\s*", color1))
         h2,l2,s2 = map(float, re.split("\s*,\s*", color2))
