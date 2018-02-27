@@ -2,6 +2,7 @@ from discord.ext import commands
 import asyncio
 import json
 import os
+import discord
 
 class Leon(commands.Bot):
     def __init__(self, *args, **kwargs):
@@ -29,7 +30,7 @@ class Leon(commands.Bot):
             await json.dump(self.data, f)
         await asyncio.sleep(600)
 
-
+print(discord.__version__)
 bot = Leon(command_prefix ='!leon ')
 bot.remove_command('help')
 bot.load_extension('LeonCog')
