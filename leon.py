@@ -32,4 +32,4 @@ class Leon(commands.Bot):
 bot = Leon(command_prefix ='!leon ')
 bot.remove_command('help')
 bot.load_extension('LeonCog') 
-bot.run('MzkzMzcxMTk2NDYyMjAyODgw.DSZ26Q.lZCbbLEFEQNHvbFW5J5PuIej-6U')
+bot.run(TOKEN)
