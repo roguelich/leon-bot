@@ -56,7 +56,6 @@ def random_spec(spec):
         return hls_to_Colour(h,l,s)
     else:
         return
-    r,g,b = colorsys.hls_to_rgb(h,l,s)
     return hls_to_Colour(h, x(), x())
 
 def check_if_not_following(ctx):
