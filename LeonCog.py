@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Feb 25 21:53:00 2018
-
-@author: Lenovo
-"""
 import discord
 from discord.ext import commands
 import colorsys
