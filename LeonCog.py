@@ -199,10 +199,9 @@ class LeonCog:
             await ctx.send("{} not found!" .format(other_member))
             return
         members_role = discord.utils.get(member_found.roles, name = "leon " + other_member)
-        print(members_role)
         if members_role:
             print(author)
-            await author.add_roles(members_role)
+            await author.add_roles(members_role, atomic=True)
             role_name = "leon " + author.name
             has_role = discord.utils.get(author.roles, name=role_name)
             if has_role:
