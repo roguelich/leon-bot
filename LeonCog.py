@@ -14,9 +14,16 @@ magenta-red
 #rrggbb-#rrggbb
 h,l,s-h,l,s
 ```"""
+
 def random_color():
     x = lambda: random.randint(0, 255)
     return discord.Colour.from_rgb(x(), x(), x())
+
+def hls_to_Colour(h, l, s):
+    r,g,b = colorsys.hls_to_rgb(h,l,s)
+    convert = lambda x: int(x*255)
+    r,g,b = convert(r), convert(g), convert(b)
+    return discord.Colour.from_rgb(r,g,b)
 
 def random_spec(spec):
     hue = lambda start, end: random.uniform(start, end)
@@ -33,26 +40,24 @@ def random_spec(spec):
         h = hue(2/3, 5/6)
     elif spec == "magenta-red":
         h = hue(5/6, 1)
-    elif re.search("^#[a-fA-F0-9]{6}-#[a-fA-F0-9]{6}$", s):
+    elif re.search("^#[a-fA-F0-9]{6}-#[a-fA-F0-9]{6}$", spec):
         convert = lambda x: (int(x[0:2], 16), int(x[2:4], 16), int(x[4:6], 16))
-        r1,g1,b1 = x(spec[1:7])
-        r2,g2,b2 = x(spec[9:15])
+        r1,g1,b1 = convert(spec[1:7])
+        r2,g2,b2 = convert(spec[9:15])
         x = lambda a, b: random.randint(min(a, b), max(a, b))
         r,g,b = x(r1, r2), x(g1, g2), x(b1, b2)
         return discord.Colour.from_rgb(r,g,b)
-    elif re.search("^{0}\s*,\s*{0}\s*,\s*{0}$".format("((1(\.0?)?)|(0(\.[0-9]*)?))"), s):
-        h,l,s = re.split("\s*,\s*", s)
+    elif re.search("^{0}\s*,\s*{0}\s*,\s*{0}-{0}\s*,\s*{0}\s*,\s*{0}$".format("((1(\.0?)?)|(0(\.[0-9]*)?))"), spec):
+        color1, color2 = spec.split("-")
+        h1,l1,s1 = map(float, re.split("\s*,\s*", color1))
+        h2,l2,s2 = map(float, re.split("\s*,\s*", color2))
+        x = lambda a, b: random.uniform(min(a, b), max(a, b))
+        h,l,s = x(h1,h2), x(l1,l2), x(l1,l2)
         return hls_to_Colour(h,l,s)
     else:
         return
-    r,g,b = colorsys.hls_to_rgb(hls)
+    r,g,b = colorsys.hls_to_rgb(h,l,s)
     return hls_to_Colour(h, x(), x())
-
-def hls_to_Colour(h, l, s):
-    r,g,b = colorsys.hls_to_rgb(hls)
-    convert = lambda x: int(x*255)
-    r,g,b = convert(r), convert(g), convert(b)
-    return discord.Colour.from_rgb(r,g,b)
 
 def check_if_not_following(ctx):
     author = ctx.author
