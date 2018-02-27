@@ -196,6 +196,7 @@ class LeonCog:
     @commands.command()
     @commands.check(check_if_not_following)
     async def follow(self, ctx, other_member):
+        print("follow")
         author = ctx.author
         guild = ctx.guild
         member_found = discord.utils.get(guild.members, name=other_member)
