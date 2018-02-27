@@ -3,7 +3,7 @@ import asyncio
 import json
 import os
 
-class Leon(commands.bot):
+class Leon(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.bg_task = self.loop.create_task(self.save_data())
