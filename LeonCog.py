@@ -246,6 +246,7 @@ class LeonCog:
         self.bot.save_data()
                 
     async def on_command_error(self, ctx, error):
+        print(type(error))
         inv = ctx.invoked_with
         if inv == "rand" or inv == "rainbow" or inv == "rainbow off" or \
         inv == "setcolor" or inv == "camouflage":
