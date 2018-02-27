@@ -196,7 +196,6 @@ class LeonCog:
     @commands.command()
     @commands.check(check_if_not_following)
     async def follow(self, ctx, other_member):
-        print("follow")
         author = ctx.author
         guild = ctx.guild
         member_found = discord.utils.get(guild.members, name=other_member)
@@ -204,6 +203,7 @@ class LeonCog:
             await ctx.send("{} not found!" .format(other_member))
             return
         members_role = discord.utils.get(member_found.roles, name = "leon " + other_member)
+        print(members_role)
         if members_role:
             await author.add_roles(members_role)
             role_name = "leon " + author.name
