@@ -31,5 +31,6 @@ class Leon(commands.Bot):
 
 bot = Leon(command_prefix ='!leon ')
 bot.remove_command('help')
-bot.load_extension('LeonCog') 
-bot.run('TOKEN')
+bot.load_extension('LeonCog')
+token = os.environ.get('TOKEN')
+bot.run(token)
