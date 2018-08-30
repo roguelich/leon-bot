@@ -17,6 +17,7 @@ def con_ctx(f):
             return f(*args, **kwargs)
     return wrapper
 
+
 class DbAPI:
     def __init__(self):
         file_exists = os.path.isfile('polling.db')
@@ -198,7 +199,7 @@ class PollingCog:
     @poll.command()
     async def create(self, ctx, question, options, *args):
         options_split = options.split()
-        if len(options_split) <= 2 or len(options_split) > 10:
+        if len(options_split) < 2 or len(options_split) > 10:
             await ctx.send('You have to supply 2-10 options inside quotation marks and separated by spaces.')
             return
 
