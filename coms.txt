@@ -1,0 +1,23 @@
+help: Shows this message.
+color set <hex-code>: Sets your new color. Aliased to 'cset'.
+color get <member>: Get other member's color. Works only for bot created roles. Aliased to 'cget'.
+color code [member]: Shows your or other's member color. Aliased to 'ccode'.
+color remove: Remove your color. Aliased to 'crem'.
+avatar [member]: Shows member's(or yours) avatar's url. 
+id [member]: Shows member's id.
+joined [member]: Shows the date and time(UTC) at which the member joined the server. 
+ex rate <base cur> <dest cur>: Shows the current exchange rate between two currencies.
+ex convert <base cur> <dest cur> <amount>: Converts some amount of money to another currency. 
+4pic [board]: Random 4chan picture.
+4chan [board]: Random 4chan post.
+roll [dice]: Roll the dice. If not specified, the dice is 6-sided.
+icon submit <link>: Submits your own icon. Must provide either a link to the image or attach it to the message.
+icon vote: Approves the submission.
+icon view: Shows the submission's details.
+ghost chset <channel-name>: Begins the ghost session in the given channel. Shuts down 10 minutes after last message.
+ghost off: Closes the session.
+poll create <question> <"Option1.. Option2.."> [multi]: Creates a poll with 2-10 options. Optionally sets choice to multiple. 
+poll list: Lists the active polls.
+poll <id>: Shows the poll and enables casting a vote. 
+poll <id> results: Shows the poll's results. 
+poll close <id>: Closes your poll. 

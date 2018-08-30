@@ -1,0 +1,4 @@
+disabled_commands:
+  id: '*'
+reserved_colors: ['#ff2400']
+guild_id: 183926953365995520
