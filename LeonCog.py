@@ -53,7 +53,7 @@ class LeonCog:
         self.leon_color = self.bot.leon_color
         self.iv = IconVote(3, self.leon_color)
         self.waits = {}
-        self.prefix = self.bot.command_prefix
+        self.prefix = self.bot.command_prefix[0]
 
     @commands.command(name='help')
     async def _help(self, ctx):
