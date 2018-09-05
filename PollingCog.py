@@ -198,13 +198,25 @@ class PollingCog:
 
     @poll.command()
     async def create(self, ctx, question, options, *args):
-        options_split = options.split()
+
+        options_split = options.split(",")
+
         if len(options_split) < 2 or len(options_split) > 10:
             await ctx.send('You have to supply 2-10 options inside quotation marks and separated by spaces.')
             return
 
         if len(args) > 2:
             raise InvalidSyntax
+
+        stripped_options = []
+
+        for option in options_split:
+            if option.startswith(" "):
+                stripped_options.append(option.lstrip())
+            else:
+                stripped_options.append(option)
+
+        options_eval = literal_eval(str(stripped_options))
 
         args_l = [arg.lower() for arg in args]
 
@@ -222,7 +234,6 @@ class PollingCog:
             await ctx.send('You aren\'t allowed to create a priority poll.')
             return
 
-        options_eval = literal_eval(str(options_split))
         author_id = ctx.author.id
         opening = datetime.now(GMT1())
         closing_time = None
