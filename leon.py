@@ -79,5 +79,6 @@ async def is_disabled(ctx):
 bot.remove_command('help')
 bot.load_extension('LeonCog')
 bot.load_extension('PollingCog')
+bot.load_extension('StatCog')
 token = os.getenv('TOKEN')
 bot.run(token)

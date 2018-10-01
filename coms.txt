@@ -11,6 +11,7 @@ ex convert <base cur> <dest cur> <amount>: Converts some amount of money to anot
 4pic [board]: Random 4chan picture.
 4chan [board]: Random 4chan post.
 roll [dice]: Roll the dice. If not specified, the dice is 6-sided.
+icon: Shows the current server's icon
 icon submit <link>: Submits your own icon. Must provide either a link to the image or attach it to the message.
 icon vote: Approves the submission.
 icon view: Shows the submission's details.

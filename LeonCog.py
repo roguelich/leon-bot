@@ -1,16 +1,10 @@
-import discord
 from discord.ext import commands
 from forex_python.converter import CurrencyRates
 from forex_python.bitcoin import BtcConverter
 import asyncio
 import aiohttp
 from lxml import html
-import operator
-import datetime
-import os
 from utils import *
-import datetime
-from PollingCog import GMT1
 import sys, traceback
 from icon_vote import IconVote
 
@@ -313,86 +307,6 @@ class LeonCog:
         if 'ext' in post.keys() and 'ext' not in ['.webm', '.swf']:
             embed.set_image(url='http://i.4cdn.org/{}/{}'.format(board, str(post['tim'])+post['ext']))
         await ctx.send(embed=embed)
-    
-    @commands.command()
-    @commands.has_permissions(administrator=True)    
-    async def stat(self, ctx, option=None):
-
-        def write_iter(iterable):
-            for el in iterable:
-                f.write('{} {}\n'.format(el[0], el[1]))
-        now_utc = datetime.datetime.now(tz=datetime.timezone.utc)
-        now = now_utc.astimezone(GMT1())
-        if option:
-            if option == '-lm':
-                after_dt = datetime.datetime(now.year, now.month, 1)
-                preset = {'limit': None, 'after': after_dt}
-            elif option == '-pm':
-                before_dt = datetime.datetime(now.year, now.month, 1) - datetime.timedelta(seconds=1)
-                print(before_dt)
-                after_dt = before_dt.replace(day=1, hour=0, minute=0, second=0)
-                print(after_dt)
-                preset = {'limit': None, 'before': before_dt, 'after': after_dt}
-            else:
-                return
-        else:
-            preset = {'limit': None}
-
-        posts, channels, days, total = {}, {}, {}, 0
-        emojis = {emoji.name: 0 for emoji in ctx.guild.emojis}
-        pattern = r':(.*?):'
-        p = re.compile(pattern)
-
-        async with ctx.channel.typing():
-            for channel in ctx.guild.channels:
-                if not isinstance(channel, discord.channel.TextChannel):
-                    continue
-                print('Retrieving messages from {}...'.format(channel.name))
-                counter = 0
-                async for message in channel.history(**preset):
-                    try:
-                        counter += 1
-                        total += 1
-                        if message.author.name in posts:
-                            posts[message.author.name] += 1
-                        else:
-                            posts[message.author.name] = 1
-                        matches = p.findall(message.content)
-                        for match in matches:
-                            if match not in emojis.keys():
-                                continue
-                            else:
-                                emojis[match] += 1
-                        dt = message.created_at
-                        dt_aware = dt.replace(tzinfo=datetime.timezone.utc)
-                        dt_gmt1 = dt_aware.astimezone(GMT1())
-                        day = dt_gmt1.date().isoformat()
-                        if day not in days:
-                            days[day] = 1
-                        else:
-                            days[day] += 1
-                    except discord.HTTPException:
-                        print('error')
-                channels[channel.name] = counter
-                print('{} messages retrieved.'.format(counter))
-        await ctx.send('Retrieving done!')
-
-        posts_sort, channels_sort, emojis_sort = super_sort(posts.items()), super_sort(channels.items()), super_sort(emojis.items())
-        days_sort = sorted(days.items(), key=operator.itemgetter(0))
-        filename = "{}_{}_{}.txt".format(now.day, now.month, now.year)
-        with open(filename, 'w+', encoding='utf-8') as f:
-            write_iter(posts_sort)
-            f.write('\n')
-            write_iter(channels_sort)
-            f.write('\n')
-            f.write('total: {}\n'.format(total))
-            f.write('\n')
-            write_iter(days_sort)
-            f.write('\n')
-            write_iter(emojis_sort)
-        with open(filename, 'rb') as f:
-            await ctx.send(file=discord.File(f))
-        os.remove(filename)
         
     @commands.command()
     async def created_at(self, ctx):
@@ -598,7 +512,7 @@ class LeonCog:
     # Icon Vote
     @commands.group(invoke_without_command=True)
     async def icon(self, ctx):
-        pass
+        await ctx.send(ctx.guild.icon_url)
 
     @icon.command()
     @commands.has_permissions(administrator=True)
@@ -617,7 +531,7 @@ class LeonCog:
         
     @icon.command()
     async def view(self, ctx):
-        await self.iv.message(ctx)
+        await self.iv.view_submission(ctx)
         
     @icon.command(name='pass')
     @commands.has_permissions(administrator=True)
