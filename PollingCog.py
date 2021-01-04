@@ -1,13 +1,11 @@
 from discord.ext import commands
-from datetime import datetime, timedelta
-from asyncio import sleep
+import datetime
 import os.path
 import sqlite3
-from ast import literal_eval
-from discord import Embed, utils, Message, RawReactionActionEvent
-from utils import GMT1, super_sort, InvalidSyntax, int_to_uni, uni_to_int
 import asyncio
-import operator
+# from utils import GMT1
+from discord import Message, TextChannel, Attachment, Embed, utils, errors
+from operator import itemgetter
 
 
 def con_ctx(f):
@@ -24,302 +22,267 @@ class DbAPI:
         self.con = sqlite3.connect('polling.db', detect_types=sqlite3.PARSE_COLNAMES | sqlite3.PARSE_DECLTYPES)
         self.c = self.con.cursor()
         if not file_exists:
-            self.c.execute('CREATE TABLE polls (id INTEGER PRIMARY KEY, author_id INTEGER, question TEXT,\
-                            opening TIMESTAMP, closing_time TIMESTAMP, choice TEXT, priority INTEGER)')
-            self.c.execute('CREATE TABLE options (id INTEGER PRIMARY KEY, poll_id INTEGER, option TEXT)')
-            self.c.execute('CREATE TABLE votes(id INTEGER PRIMARY KEY, option_id INTEGER, user_id INTEGER)')
+            self.c.execute('CREATE TABLE polls (id INTEGER PRIMARY KEY, author_id INTEGER, opening TIMESTAMP, \
+                            closing TIMESTAMP, message_id INTEGER, channel_id INTEGER, content TEXT, title TEXT, '
+                           'image TEXT, active INTEGER)')
+            self.c.execute('CREATE TABLE options (id INTEGER PRIMARY KEY, poll_id INTEGER, option TEXT, count INTEGER)')
+            self.c.execute('CREATE TABLE votes(id INTEGER PRIMARY KEY, poll_id INTEGER, option_id INTEGER, '
+                           'voter_id INTEGER)')
             self.con.commit()
 
     @con_ctx
-    def add_poll(self, author_id, question, options, opening, closing_time, choice, priority=0):
-        vals = (None, author_id, question, opening, closing_time, choice, priority)
-        self.c.execute('INSERT INTO polls VALUES (?, ?, ?, ?, ?, ?, ?)', vals)
+    def register_poll(self, author_id, opening, closing, channel_id, content, title, image, options):
+        values = (None, author_id, opening, closing, None, channel_id, content, title, image, 0)
+        self.c.execute('INSERT INTO polls VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', values)
         poll_id = self.c.lastrowid
         for option in options:
-            self.c.execute('INSERT INTO options VALUES (?, ?, ?)', (None, poll_id, option))
+            self.c.execute('INSERT INTO options VALUES (?, ?, ?, ?)', (None, poll_id, option, 0))
         return poll_id
 
     @con_ctx
-    def close_poll(self, poll_id, closing_time):
-        self.c.execute('UPDATE polls SET closing_time = ? WHERE id = ?', (closing_time, poll_id))
-
-    @con_ctx
-    def add_vote(self, option_id, user_id):
-        self.c.execute('INSERT INTO votes VALUES (?, ?, ?)', (None, option_id, user_id))
-        pass
-
-    def fetch_poll(self, poll_id, results=False):
-        """Returns a list that: [[0]poll_id: int, [1]author_id: int, [2]question: str, [3]opening: datetime.datetime,
-        [4]closing_time: datetime.datetime, [5]choice: text, [6]priority: int,
-        [7]options: (option name: str, vote_count: int): list"""
-
-        self.c.execute('SELECT * FROM polls WHERE id = ?', (poll_id,))
-        fetch = self.c.fetchone()
-        if fetch is None:
-            return
-        poll_list = list(fetch)
-        options = self.c.execute('SELECT * FROM options WHERE poll_id = ?', (poll_id,)).fetchall()
-        options_pairs = []
-
-        for option in options:
-            if results:
-                self.c.execute('SELECT * FROM votes WHERE option_id = ?', (option[0],))
-                votes = self.c.fetchall()
-                if votes:
-                    vote_count = len(votes)
-                else:
-                    vote_count = 0
-                options_pairs.append((option[2], vote_count))
-            else:
-                options_pairs.append((option[2], option[0]))
-
-        poll_list.append(options_pairs)
-
-        return poll_list
-
-    def fetch_value(self, poll_id, value):
-        self.c.execute('SELECT ? FROM polls WHERE id = ?', (value, poll_id))
-        fetch = self.c.fetchone()
+    def fetch_value(self, key, table, row_id):
+        query = 'SELECT {} FROM {} WHERE id=?'.format(key, table)
+        self.c.execute(query, (row_id,))
+        fetch = self.c.fetchone()[0]
         if fetch is None:
             return
         else:
             return fetch
 
-    def get_count(self, poll_id):
-        self.c.execute('SELECT id FROM options WHERE poll_id = ?', (poll_id,))
-        options = self.c.fetchall()
-        count = 0
-        for option_id in options:
-            self.c.execute('SELECT COUNT(id) FROM votes WHERE option_id = ?', option_id)
-            for fetch in self.c.fetchall():
-                count += fetch[0]
-        return count
+    @con_ctx
+    def change_value(self, key, table, value, row_id):
+        query = "UPDATE {} SET {}=? WHERE id=?".format(table, key)
+        self.c.execute(query, (value, row_id))
 
-    def fetch_actives(self):
-        self.c.execute('SELECT id, author_id, question, priority FROM polls WHERE closing_time IS NULL')
-        polls = self.c.fetchall()
-        polls_list = []
-        for poll in polls:
-            poll_dict = {'id': poll[0],
-                         'author_id': poll[1],
-                         'question': poll[2],
-                         'priority': poll[3],
-                         'vote_count': self.get_count(poll[0])}
-            polls_list.append(poll_dict)
-        return polls_list
+    @con_ctx
+    def fetch_poll_data(self, poll_id):
+        self.c.execute('SELECT id, author_id, opening, closing, channel_id, content, title, image FROM polls WHERE id=?',
+                       (poll_id,))
+        polls_fetch = self.c.fetchone()
+        self.c.execute('SELECT option FROM options WHERE poll_id=?', (poll_id,))
+        options_fetch = self.c.fetchall()
+        options = [option_tuple[0] for option_tuple in options_fetch]
+        poll_data = {}
+        poll_data_keys = ["id", "author_id", "opening", "closing", "channel_id", "content", "title", "image"]
+        i = 0
+        for value in polls_fetch:
+            poll_data[poll_data_keys[i]] = value
+            i += 1
+        poll_data["options"] = options
+        return poll_data
 
-    def voted_for_option(self, user_id, option_id):
-        self.c.execute('SELECT id FROM votes WHERE user_id = ? AND option_id = ?', (user_id, option_id))
+    @con_ctx
+    def voted(self, voter_id, poll_id):
+        self.c.execute('SELECT id FROM votes WHERE voter_id=? AND poll_id=?', (voter_id, poll_id))
         return bool(self.c.fetchone())
 
-    def voted_in(self, user_id, poll_id):
-        self.c.execute('SELECT id FROM options WHERE poll_id = ?', (poll_id,))
-        option_ids = self.c.fetchall()
-        for option_id in option_ids:
-            self.c.execute('SELECT id FROM votes WHERE user_id = ? AND option_id = ?', (user_id, option_id[0]))
-            fetch = self.c.fetchone()
-            if fetch:
-                return True
-        return False
+    @con_ctx
+    def add_vote(self, poll_id, option, voter_id):
+        self.c.execute('SELECT count FROM options WHERE poll_id=? AND option=?', (poll_id, option))
+        count = self.c.fetchone()[0]
+        count += 1
+        self.c.execute('UPDATE options SET count=? WHERE poll_id=? AND option=?', (count, poll_id, option))
+        option_id = self.c.lastrowid
+        self.c.execute('INSERT INTO votes VALUES (?, ?, ?, ?)', (None, poll_id, option_id, voter_id))
+
+    @con_ctx
+    def closed(self, poll_id):
+        self.c.execute('SELECT active FROM polls WHERE id=?', (poll_id,))
+        return not(self.c.fetchone()[0])
+
+    @con_ctx
+    def fetch_results(self, poll_id):
+        self.c.execute('SELECT option, count FROM options WHERE poll_id=?', (poll_id,))
+        fetch = self.c.fetchall()
+        return sorted(fetch, key=itemgetter(1), reverse=True)
+
+    @con_ctx
+    def fetch_total_count(self, poll_id):
+        self.c.execute('SELECT count FROM options WHERE poll_id=?', (poll_id,))
+        fetch = self.c.fetchall()
+        total_count = 0
+        for count in fetch:
+            total_count += count[0]
+        return total_count
+
+    @con_ctx
+    def fetch_options(self, poll_id):
+        self.c.execute('SELECT option FROM options WHERE poll_id=?', (poll_id,))
+        fetch = self.c.fetchall()
+        options = [option[0] for option in fetch]
+        return options
 
 
-def make_description(closing_time, choice):
-    # strftime("%d-%m-%Y %H:%M:%S")
-    desc = ''
-    if not closing_time:
-        desc += 'Active'
-    else:
-        desc += 'Closed'
-    desc += ' | {}'.format(choice)
-    return desc
-
-
-def share_bar(x, y):
-    if y == 0:
-        return ''
-    return '#' * int(15 * x/y)
-
-
-class PollingCog:
+class PollingCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db = DbAPI()
         self.leon_color = self.bot.leon_color
+        # now_utc = datetime.datetime.now(tz=datetime.timezone.utc)
+        # self.now = now_utc.astimezone(GMT1())
 
-    def build_list_embed(self, ctx, fetch):
-        embed = Embed(title='Active Polls', color=self.leon_color)
-        poll_list = sorted(fetch, key=operator.itemgetter('priority'), reverse=True)
-        for poll in poll_list:
-            author = ctx.guild.get_member(int(poll['author_id']))
-            embed.add_field(name='{}'.format(poll['question']), inline=False, value=
-                            'ID: {} | Vote Count: {} | By: {}'.format(poll['id'], poll['vote_count'], author.nick))
+    def build_embed(self, guild, poll_data):
+        author = utils.find(lambda m: m.id == poll_data["author_id"], guild.members)
+        description = "Poll ID: #{}".format(poll_data["id"])
+        embed = Embed(title=poll_data["title"], description=description, color=self.leon_color)
+        embed.set_author(name=author.name, icon_url=author.avatar_url)
+        embed.set_image(url=poll_data["image"])
+        embed.set_footer(text="0 votes counted | Closes at {} Paris Time".format(poll_data["closing"].strftime("%H:%M")))
         return embed
 
-    def build_poll_embed(self, ctx, poll, results=False):
-        member = utils.find(lambda m: m.id == poll[1], ctx.guild.members)
-        desc = make_description(poll[4], poll[5])
-        embed = Embed(title='{}'.format(poll[2]), description=desc, color=self.leon_color)
-        embed.set_author(name=member.nick, icon_url=member.avatar_url)
-        options = poll[7]
+    async def run_poll(self, message, closing, poll_id, options, counter):
+        embed = message.embeds[0]
+        footer = embed.footer.text
+        separator = " | "
+        footer_sliced = footer.split(separator)
 
-        if results:
-            options_s = super_sort(options)
-            votes_total = 0
-            for option in options_s:
-                votes_total += option[1]
+        def check(payload):
+            return payload.message_id == message.id
 
-            embed.set_footer(text='{} Votes'.format(votes_total))
+        while True:
+            now = datetime.datetime.now()
+            delta = closing - now
+            try:
+                response = await self.bot.wait_for("raw_reaction_add", check=check, timeout=delta.total_seconds())
+            except asyncio.TimeoutError:
+                await message.edit(embed=embed.set_footer(text=footer_sliced[0] + separator + "Closed"))
+                self.db.change_value("active", "polls", 0, poll_id)
+                break
+            else:
+                option = response.emoji.name
+                voter_id = response.user_id
+                voted = self.db.voted(voter_id, poll_id)
+                voter = response.member
+                if option not in options:
+                    print("ignoring option")
+                    pass
+                elif voted:
+                    try:
+                        await voter.send("You already voted in Poll #{}!".format(poll_id))
+                    except errors.Forbidden:
+                        pass
+                else:
+                    self.db.add_vote(poll_id, option, voter_id)
+                    counter += 1
+                    footer_sliced[0] = "{} votes counted".format(counter)
+                    await message.edit(embed=embed.set_footer(text=footer_sliced[0] + separator + footer_sliced[1]))
+                    try:
+                        await voter.send("Your vote in Poll #{} has been counted.".format(poll_id))
+                    except errors.Forbidden:
+                        pass
+                await message.remove_reaction(response.emoji, voter)
 
-            for option in options_s:
-                bar = '[{}]'.format(share_bar(option[1], votes_total))
-                embed.add_field(name=option[0] + ': ' + str(option[1]), value=bar, inline=False)
+    async def open_poll(self, guild, poll_id):
+        """
+        Constructs a poll message and embed, sends it and sets up a listener
+        :param guild:
+        :param poll_id:
+        :return:
+        """
+        poll_data = self.db.fetch_poll_data(poll_id)
 
-            return embed
+        embed = self.build_embed(guild, poll_data)
+        channel_id = poll_data["channel_id"]
+        channel = utils.find(lambda ch: ch.id == channel_id, guild.channels)
 
-        else:
-            ordered_ids = []
-            order_count = 1
-            for option in options:
-                embed.add_field(name='{}. '.format(order_count), value=option[0], inline=False)
-                ordered_ids.append(option[1])
-                order_count += 1
+        await channel.send(poll_data["content"])
+        message = await channel.send(embed=embed)
+        for option in (poll_data["options"]):
+            await message.add_reaction(option)
 
-            return embed, ordered_ids
+        while True:
+            updated_message = await message.channel.fetch_message(message.id)
+            if len(updated_message.reactions) == len(poll_data["options"]):
+                break
+            else:
+                await asyncio.sleep(0.1)
+
+        self.db.change_value("message_id", "polls", message.id, poll_id)
+        self.db.change_value("active", "polls", 1, poll_id)
+
+        counter = 0
+
+        await self.run_poll(message, poll_data["closing"], poll_id, poll_data["options"], counter)
+
+    async def wait_for_opening(self, guild, poll_id):
+        """
+        Waits for the poll and passes poll_id to open_poll()
+        :param guild:
+        :param poll_id:
+        :return:
+        """
+        opening = self.db.fetch_value('opening', 'polls', poll_id)
+        now = datetime.datetime.now()
+        delta = opening - now
+        await asyncio.sleep(delta.total_seconds())
+        await self.open_poll(guild, poll_id)
 
     @commands.group(invoke_without_command=True)
     async def poll(self, ctx, *args):
-
-        if args[0].isnumeric() and len(args) > 1:
-            if args[1] == "results":
-                await ctx.invoke(self.poll.get_command('results'), args[0])
-
-        elif args[0].isnumeric():
-            await ctx.invoke(self.poll.get_command('vote'), args[0])
+        pass
 
     @poll.command()
-    async def create(self, ctx, question, options, *args):
-
-        options_split = options.split(",")
-
-        if len(options_split) < 2 or len(options_split) > 10:
-            await ctx.send('You have to supply 2-10 options inside quotation marks and separated by spaces.')
+    async def schedule(self, ctx, template: Message, channel: TextChannel, opening_str, closing_str, title):
+        try:
+            opening_time = datetime.datetime.strptime(opening_str, "%Y-%m-%d %H:%M")
+            closing_time = datetime.datetime.strptime(closing_str, "%Y-%m-%d %H:%M")
+        except ValueError:
+            await ctx.send('Invalid request format, try again')
             return
 
-        if len(args) > 2:
-            raise InvalidSyntax
-
-        stripped_options = []
-
-        for option in options_split:
-            if option.startswith(" "):
-                stripped_options.append(option.lstrip())
-            else:
-                stripped_options.append(option)
-
-        options_eval = literal_eval(str(stripped_options))
-
-        args_l = [arg.lower() for arg in args]
-
-        if 'priority' in args_l:
-            priority = 1
-        else:
-            priority = 0
-
-        if 'multi' in args_l:
-            choice = 'Multiple Choice'
-        else:
-            choice = 'Single Choice'
-
-        if priority > 0 and not ctx.author.guild_permissions.administrator:
-            await ctx.send('You aren\'t allowed to create a priority poll.')
+        try:
+            assert opening_time > datetime.datetime.now()
+            assert closing_time > opening_time
+        except AssertionError:
+            await ctx.send('Invalid dates, try again.')
             return
 
-        author_id = ctx.author.id
-        opening = datetime.now(GMT1())
-        closing_time = None
+        content = template.content
+        options = [reaction.emoji for reaction in template.reactions]
 
-        poll_id = self.db.add_poll(author_id, question, options_eval, opening, closing_time, choice,
-                                   priority)
+        if len(options) < 2:
+            await ctx.send('You must supply at least 2 options.')
+            return
 
-        await ctx.send('Poll #{} has been created. Type in "$poll vote <id>" to vote in it and "$poll results" '
-                       'to see the results.'.format(poll_id))
+        attachment = template.attachments[0]
+        image = attachment.url
+
+        poll_id = self.db.register_poll(ctx.author.id, opening_time, closing_time, channel.id, content, title, image,
+                                        options)
+
+        await self.wait_for_opening(ctx.guild, poll_id)
 
     @poll.command()
     async def results(self, ctx, poll_id):
-        poll = self.db.fetch_poll(int(poll_id), results=True)
-        if poll is None:
-            await ctx.send('Poll not found.')
+        closed = self.db.closed(poll_id)
+        if not closed:
+            await ctx.send("The poll hasn't closed yet!")
             return
-        embed = self.build_poll_embed(ctx, poll, results=True)
-        await ctx.send(embed=embed)
+        results = self.db.fetch_results(poll_id)
+        content = ""
+        for option in results:
+            content += "{}: {}".format(option[0], option[1])
+            if results.index(option) < (len(results) - 1):
+                content += "\n"
+        await ctx.send(content)
 
     @poll.command()
-    async def list(self, ctx):
-        active_polls = self.db.fetch_actives()
-        if len(active_polls) == 0:
-            await ctx.send('There are no active polls now.')
-            return
-        embed = self.build_list_embed(ctx, active_polls)
-        await ctx.send(embed=embed)
-
-    @poll.command()
-    async def vote(self, ctx, poll_id):
-        poll = self.db.fetch_poll(int(poll_id))
-        if poll is None:
-            await ctx.send('Poll not found.')
-            return
-        embed, ordered_ids = self.build_poll_embed(ctx, poll)
-        message = await ctx.send(embed=embed)
-
-        for i in range(len(ordered_ids)):
-            unicode = int_to_uni(i+1)
-            await message.add_reaction(unicode)
-
-        def check(payload):
-            return payload.user_id == ctx.author.id
-
-        end_time = datetime.now() + timedelta(seconds=60)
-
-        while True:
-            now = datetime.now()
-            remaining = end_time - now
-
-            try:
-                response = await self.bot.wait_for('raw_reaction_add', check=check, timeout=remaining.total_seconds())
-
-            except asyncio.TimeoutError:
-                break
-
-            else:
-                unicode = response.emoji.name
-                i = uni_to_int(unicode)
-                option_id = ordered_ids[i-1]
-
-                choice = poll[5]
-                if choice == "Multiple Choice":
-                    if self.db.voted_for_option(ctx.author.id, option_id):
-                        await ctx.send('You already voted for that option.')
-                        return
-                else:
-                    if self.db.voted_in(ctx.author.id, poll[0]):
-                        await ctx.send('You already voted in that poll.')
-                        return
-
-                self.db.add_vote(option_id, ctx.author.id)
-
-                await ctx.send('Your vote has been counted.')
-
-    @poll.command()
-    async def close(self, ctx, poll_id):
-        poll_author_id = self.db.fetch_value(poll_id, 'author_id')
-        if poll_author_id is None:
-            await ctx.send('Poll not found')
-            return
-        if ctx.author.id != poll_author_id and not ctx.author.guild_permissions.administrator:
-            await ctx.send('Only the poll\'s author or an administrator can close it.')
-            return
-        now = datetime.now(GMT1())
-        self.db.close_poll(poll_id, now)
+    async def restart(self, ctx, poll_id):
+        poll_id = int(poll_id)
+        message_id = self.db.fetch_value("message_id", "polls", poll_id)
+        channel_id = self.db.fetch_value("channel_id", "polls", poll_id)
+        channel = ctx.guild.get_channel(channel_id)
+        message = await channel.fetch_message(message_id)
+        reactions = message.reactions
+        for reaction in reactions:
+            emoji = reaction.emoji
+            async for user in reaction.users():
+                if not user.id == self.bot.user.id:
+                    await message.remove_reaction(emoji, user)
+        closing = self.db.fetch_value("closing", "polls", poll_id)
+        counter = self.db.fetch_total_count(poll_id)
+        options = self.db.fetch_options(poll_id)
+        await self.run_poll(message, closing, poll_id, options, counter)
 
 
 def setup(bot):

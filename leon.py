@@ -56,6 +56,7 @@ prefix = os.getenv('PREFIX')
 bot = Leon(command_prefix=[prefix])
 
 
+"""
 @bot.check
 async def is_disabled(ctx):
     guild_id = bot.config['guild_id']
@@ -74,7 +75,7 @@ async def is_disabled(ctx):
         await ctx.send('Error! You aren\'t allowed to use that command.')
         return False
     return True
-
+"""
 
 bot.remove_command('help')
 bot.load_extension('LeonCog')

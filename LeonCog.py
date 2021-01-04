@@ -37,7 +37,7 @@ def get_member(ctx, args):
     return discord.utils.find(lambda m: m.name == nickname or m.nick == nickname, ctx.guild.members)
 
 
-class LeonCog:
+class LeonCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.help_pages = bot.help_pages
@@ -307,7 +307,27 @@ class LeonCog:
         if 'ext' in post.keys() and 'ext' not in ['.webm', '.swf']:
             embed.set_image(url='http://i.4cdn.org/{}/{}'.format(board, str(post['tim'])+post['ext']))
         await ctx.send(embed=embed)
-        
+
+    @commands.group(name='4top')
+    async def _4top(self, ctx):
+        pass
+
+    @_4top.command()
+    async def boards(self, ctx):
+        pass
+
+    @_4top.command()
+    async def threads(self, ctx, board):
+        pass
+
+    @_4top.command()
+    async def posts(self, ctx, board):
+        pass
+
+    @_4top.command()
+    async def pics(self, ctx, board):
+        pass
+
     @commands.command()
     async def created_at(self, ctx):
         print(ctx.message.created_at.day)
